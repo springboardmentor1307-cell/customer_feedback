@@ -1,0 +1,41 @@
+# ============================
+# ReviewSense – Milestone 1
+# Feedback Data Collection & Preprocessing
+# ============================
+
+import pandas as pd
+import re
+import string
+
+STOPWORDS = {
+    "is","the","and","a","an","to","of","in","on","for","with","this",
+    "that","it","was","are","as","at","be","by","from","or","but"
+}
+
+def clean_text(text):
+    text = str(text).lower()  # SAFE conversion
+    text = re.sub(r"http\S+", "", text)
+    text = re.sub(r"\d+", "", text)
+    text = text.translate(str.maketrans("", "", string.punctuation))
+    text = re.sub(r"\s+", " ", text).strip()
+    words = [w for w in text.split() if w not in STOPWORDS]
+    return " ".join(words)
+
+def main():
+    file_path = "ReviewSense_Customer_Feedback_5000.xlsx"
+    
+    df = pd.read_excel(file_path)
+
+    # Ensure feedback column exists
+    if "feedback" not in df.columns:
+        raise ValueError("❌ 'feedback' column not found in Excel file")
+
+    df["clean_feedback"] = df["feedback"].apply(clean_text)
+
+    df.to_csv("Milestone1_Cleaned_Feedback.csv", index=False)
+
+    print("✅ Milestone 1 completed successfully")
+    print(df[["feedback", "clean_feedback"]].head())
+
+if __name__ == "__main__":
+    main()
