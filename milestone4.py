@@ -9,7 +9,245 @@ import seaborn as sns
 from datetime import datetime
 from wordcloud import WordCloud
 import numpy as np
+import hashlib
 
+# ── Demo Credentials (SHA-256 hashed) ────────────────────────────────────────
+# Default: username="admin", password="admin123"
+# To add users: hashlib.sha256("yourpassword".encode()).hexdigest()
+USERS = {
+    "admin": hashlib.sha256("admin123".encode()).hexdigest(),
+
+}
+
+# ── Session State ────────────────────────────────────────────────
+if "authenticated" not in st.session_state:
+    st.session_state.authenticated = False
+if "username" not in st.session_state:
+    st.session_state.username = ""
+
+
+def verify_login(username: str, password: str) -> bool:
+    hashed = hashlib.sha256(password.encode()).hexdigest()
+    return USERS.get(username.strip().lower()) == hashed
+
+
+# ── Authentication Check ─────────────────────────────────────────
+if not st.session_state.authenticated:
+    # Page configuration for login
+    st.set_page_config(
+        page_title="ReviewSense – Login",
+        page_icon="🔐",
+        layout="centered",
+        initial_sidebar_state="collapsed",
+    )
+
+    # Custom CSS for login
+    st.markdown("""
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap');
+
+/* ── Reset & Root ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body, [data-testid="stAppViewContainer"], [data-testid="stApp"] {
+    background: #0a0e1a !important;
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+}
+
+[data-testid="stAppViewContainer"] {
+    background:
+        radial-gradient(ellipse 80% 60% at 50% -10%, rgba(29,99,220,0.35) 0%, transparent 70%),
+        radial-gradient(ellipse 50% 40% at 85% 80%, rgba(100,220,180,0.12) 0%, transparent 60%),
+        #0a0e1a !important;
+}
+
+/* Hide Streamlit chrome */
+#MainMenu, footer, header,
+[data-testid="stToolbar"],
+[data-testid="stDecoration"],
+[data-testid="stStatusWidget"] { display: none !important; }
+
+/* ── Card wrapper ── */
+[data-testid="stVerticalBlock"] > [data-testid="stVerticalBlockBorderWrapper"],
+section.main > div { padding-top: 0 !important; }
+
+/* ── Logo / Brand ── */
+.brand-wrap {
+    text-align: center;
+    padding: 3.5rem 0 2rem;
+}
+.brand-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 72px; height: 72px;
+    border-radius: 20px;
+    background: linear-gradient(135deg, #1d63dc 0%, #38c9a4 100%);
+    font-size: 2.2rem;
+    box-shadow: 0 8px 32px rgba(29,99,220,0.45);
+    margin-bottom: 1.1rem;
+}
+.brand-name {
+    font-family: 'Syne', sans-serif;
+    font-size: 2.2rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    background: linear-gradient(90deg, #ffffff 30%, #38c9a4 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+.brand-tagline {
+    color: rgba(255,255,255,0.45);
+    font-size: 0.9rem;
+    font-weight: 300;
+    letter-spacing: 0.04em;
+    margin-top: 0.3rem;
+}
+
+/* ── Login card ── */
+.login-card {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.09);
+    border-radius: 20px;
+    padding: 2.2rem 2.4rem 2.4rem;
+    max-width: 420px;
+    margin: 0 auto 2rem;
+    backdrop-filter: blur(16px);
+    box-shadow: 0 24px 64px rgba(0,0,0,0.4), 0 1px 0 rgba(255,255,255,0.07) inset;
+}
+.card-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: #ffffff;
+    margin-bottom: 0.3rem;
+}
+.card-sub {
+    color: rgba(255,255,255,0.4);
+    font-size: 0.85rem;
+    margin-bottom: 1.8rem;
+}
+
+/* ── Input labels ── */
+.stTextInput label, .stTextInput [data-testid="InputInstructions"] {
+    color: rgba(255,255,255,0.65) !important;
+    font-size: 0.82rem !important;
+    font-weight: 500 !important;
+    letter-spacing: 0.04em !important;
+    text-transform: uppercase !important;
+}
+
+/* ── Input fields ── */
+.stTextInput input {
+    background: #ffffff !important;
+    border: 1px solid #cccccc !important;
+    border-radius: 10px !important;
+    color: #000000 !important;
+    font-family: 'DM Sans', sans-serif !important;
+    font-size: 0.95rem !important;
+    padding: 0.65rem 1rem !important;
+    transition: border-color 0.2s, box-shadow 0.2s !important;
+}
+.stTextInput input:focus {
+    border-color: #1d63dc !important;
+    box-shadow: 0 0 0 3px rgba(29,99,220,0.22) !important;
+    outline: none !important;
+}
+.stTextInput input::placeholder { color: #666666 !important; }
+
+/* ── Button ── */
+.stButton > button {
+    width: 100% !important;
+    background: linear-gradient(135deg, #1d63dc 0%, #1a52b8 100%) !important;
+    color: #ffffff !important;
+    border: none !important;
+    border-radius: 10px !important;
+    font-family: 'Syne', sans-serif !important;
+    font-size: 1rem !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.02em !important;
+    padding: 0.7rem 1.5rem !important;
+    margin-top: 0.5rem !important;
+    cursor: pointer !important;
+    transition: transform 0.15s, box-shadow 0.2s !important;
+    box-shadow: 0 4px 18px rgba(29,99,220,0.4) !important;
+}
+.stButton > button:hover {
+    transform: translateY(-1px) !important;
+    box-shadow: 0 8px 28px rgba(29,99,220,0.55) !important;
+}
+.stButton > button:active { transform: translateY(0) !important; }
+
+/* ── Alerts ── */
+.stAlert {
+    border-radius: 10px !important;
+    font-size: 0.88rem !important;
+}
+
+/* ── Demo hint ── */
+.demo-hint {
+    text-align: center;
+    color: rgba(255,255,255,0.25);
+    font-size: 0.78rem;
+    margin-top: 1.5rem;
+    letter-spacing: 0.02em;
+}
+.demo-hint span { color: rgba(56,201,164,0.7); font-weight: 500; }
+
+/* ── Divider ── */
+.divider {
+    border: none;
+    border-top: 1px solid rgba(255,255,255,0.07);
+    margin: 1.4rem 0 1.2rem;
+}
+</style>
+""", unsafe_allow_html=True)
+
+    # ── Login UI ────────
+    st.markdown("""
+<div class="brand-wrap">
+    <div class="brand-icon">📊</div>
+    <div class="brand-name">ReviewSense</div>
+    <div class="brand-tagline">Customer Feedback Intelligence Platform</div>
+</div>
+""", unsafe_allow_html=True)
+
+    st.markdown('<div class="login-card">', unsafe_allow_html=True)
+    st.markdown('<div class="card-title">Welcome back</div>',
+                unsafe_allow_html=True)
+    st.markdown('<div class="card-sub">Sign in to access your dashboard</div>',
+                unsafe_allow_html=True)
+
+    username = st.text_input(
+        "Username", placeholder="Enter your username", key="username_input")
+    password = st.text_input(
+        "Password", placeholder="Enter your password", type="password", key="password_input")
+
+    st.markdown("<hr class='divider'>", unsafe_allow_html=True)
+
+    if st.button("Sign In →", use_container_width=True):
+        if not username or not password:
+            st.error("⚠️ Please enter both username and password.")
+        elif verify_login(username, password):
+            st.session_state.authenticated = True
+            st.session_state.username = username.strip().lower()
+            st.success("✅ Login successful! Loading your dashboard…")
+            st.rerun()
+        else:
+            st.error("❌ Invalid username or password. Please try again.")
+
+    st.markdown("""
+<div class="demo-hint">
+    Demo credentials — username: <span>admin</span> · password: <span>admin123</span>
+</div>
+""", unsafe_allow_html=True)
+
+    st.markdown('</div>', unsafe_allow_html=True)
+    st.stop()  # Stop execution if not authenticated
+
+# If authenticated, proceed to dashboard
 # Page configuration
 st.set_page_config(
     page_title="ReviewSense Dashboard",
@@ -41,14 +279,16 @@ st.markdown(
 )
 
 # ── Load Data
+
+
 @st.cache_data
 def load_data():
     df = pd.read_csv("Milestone2_Sentiment_Results.csv")
-    
+
     # ←←← ADD THESE TWO LINES ←←←
     df["sentiment"] = df["sentiment"].str.lower().str.strip()
     df["date"] = pd.to_datetime(df["date"], errors="coerce")
-    
+
     return df
 
 
@@ -86,15 +326,24 @@ keywords_df = load_keywords()
 
 # ── Sidebar Filters
 st.sidebar.header("🔍 Filters")
+# Logout
+st.sidebar.subheader("👤 User")
+st.sidebar.write(f"Logged in as: **{st.session_state.username}**")
+if st.sidebar.button("Logout", use_container_width=True):
+    st.session_state.authenticated = False
+    st.session_state.username = ""
+    st.rerun()
 # Sentiment
 sentiment_options = ["positive", "negative", "neutral"]
-sentiment_display = {"positive": "Positive", "negative": "Negative", "neutral": "Neutral"}
+sentiment_display = {"positive": "Positive",
+                     "negative": "Negative", "neutral": "Neutral"}
 sentiment_filter_display = st.sidebar.multiselect(
     "Select Sentiment",
     options=[sentiment_display[s] for s in sentiment_options],
     default=[sentiment_display[s] for s in sentiment_options],
 )
-sentiment_filter = [k for k, v in sentiment_display.items() if v in sentiment_filter_display]
+sentiment_filter = [k for k, v in sentiment_display.items()
+                    if v in sentiment_filter_display]
 # Product
 product_filter = st.sidebar.multiselect(
     "Select Product",
@@ -161,7 +410,8 @@ st.subheader("😊 Sentiment Distribution")
 if not filtered_df.empty:
     fig1, ax1 = plt.subplots(figsize=(8, 5))
     counts = filtered_df["sentiment"].value_counts()
-    colors = {"positive": "#4CAF50", "negative": "#F44336", "neutral": "#9E9E9E"}
+    colors = {"positive": "#4CAF50",
+              "negative": "#F44336", "neutral": "#9E9E9E"}
     bars = ax1.bar(
         [sentiment_display.get(s, s.title()) for s in counts.index],
         counts.values,
@@ -187,7 +437,8 @@ else:
 st.subheader("📱 Product-wise Sentiment")
 if not filtered_df.empty:
     product_sent = (
-        filtered_df.groupby("product")["sentiment"].value_counts().unstack(fill_value=0)
+        filtered_df.groupby("product")[
+            "sentiment"].value_counts().unstack(fill_value=0)
     )
     # Ensure all sentiment columns exist
     for col in sentiment_options:
@@ -202,7 +453,8 @@ if not filtered_df.empty:
     display_cols = [sentiment_display[s] for s in sentiment_options]
     product_sent_disp = product_sent.copy()
     product_sent_disp.rename(columns=sentiment_display, inplace=True)
-    st.dataframe(product_sent_disp[display_cols + ["Total", "Positive %"]].style.format(precision=1), use_container_width=True)
+    st.dataframe(product_sent_disp[display_cols + ["Total", "Positive %"]
+                                   ].style.format(precision=1), use_container_width=True)
     # Heatmap
     fig_hm, ax_hm = plt.subplots(figsize=(10, 6))
     sns.heatmap(
@@ -215,11 +467,12 @@ if not filtered_df.empty:
     ax_hm.set_title("Product Sentiment Heatmap")
     st.pyplot(fig_hm)
 
-    # ── Trend Over Time ─────────────────────────────────────────────────────────
+    # ── Trend Over Time
     st.subheader("📈 Sentiment Trends Over Time")
 if not filtered_df.empty:
     filtered_df["month"] = filtered_df["date"].dt.to_period("M")
-    trend = filtered_df.groupby(["month", "sentiment"]).size().unstack(fill_value=0)
+    trend = filtered_df.groupby(
+        ["month", "sentiment"]).size().unstack(fill_value=0)
     fig_trend, ax_trend = plt.subplots(figsize=(12, 6))
     for col in trend.columns:
         ax_trend.plot(
@@ -249,7 +502,8 @@ if not keywords_df.empty:
         st.pyplot(fig_bar)
     with colB:
         if len(top10) > 0:
-            word_freq = dict(zip(keywords_df["keyword"], keywords_df["frequency"]))
+            word_freq = dict(
+                zip(keywords_df["keyword"], keywords_df["frequency"]))
             wc = WordCloud(
                 width=400, height=400, background_color="white", min_font_size=10
             ).generate_from_frequencies(word_freq)
